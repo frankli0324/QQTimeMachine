@@ -9,9 +9,9 @@
                 <div v-for="item in conversation" :key="item.msgId">
                     <Message
                         :uid="item.uin"
+                        :name="item.nickName"
                         :msg="item.content"
                         :is_sending="item.uin == self_uin"
-                        v-if="item.read === 0"
                     />
                 </div>
             </div>
