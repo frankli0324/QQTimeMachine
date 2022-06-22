@@ -1,16 +1,19 @@
 <template>
-    <div :class="['message-container', is_sending ? 'send' : 'recv']">
+    <div v-if="style === 'msg'" :class="['message-container', is_sending ? 'send' : 'recv']">
         <div class="avatar-container">
             <img :src="this.avatar_url()" />
         </div>
         <div class="content-container">
             <div class="name-container">
-                <div>{{ this.name }}</div>
+                {{ this.name }}
             </div>
             <div class="text-container">
                 <div class="text" v-html="this.render_msg(msg)"></div>
             </div>
         </div>
+    </div>
+    <div v-if="style === 'notify'" class="notify-container">
+        {{ msg }}
     </div>
 </template>
 
@@ -20,6 +23,23 @@ import { defineComponent } from 'vue'
 export default defineComponent({
     setup() {
 
+    },
+    data() {
+        return {
+            style: '',
+        }
+    },
+    mounted() {
+        if (typeof this.msg === 'string') {
+            if (this.msg.startsWith('<?xml')) {
+                this.style = 'xml';
+            } else {
+                this.style = 'notify';
+            }
+        } else if (this.msg instanceof Array) {
+            this.style = 'msg';
+        }
+        console.log(this.style);
     },
     props: {
         uid: Number,
@@ -33,14 +53,21 @@ export default defineComponent({
         },
         render_msg(msg) {
             let result = '';
-            let imbase = 'http://gchat.qpic.cn';
             for (let c of msg) {
                 switch (c['msg-type']) {
                     case 0:
-                        result += `<span>${c.text}</span>`;
+                        result += `<span>${c.text.replace('\r\n', '<br/>')}</span>`;
                         break;
                     case 1:
-                        result += `<img src="${imbase}${c.url}" referrerpolicy="no-referrer" />`;
+                        result += (function() {
+                            let ext = c['file-name'].split('.').pop()
+                            let imbase = 'http://gchat.qpic.cn';
+                            let url1 = `http://localhost:8000/${c['md5']}.${ext}`;
+                            let url2 = `${imbase}${c.url}`;
+                            return `<img src="${url1}" referrerpolicy="no-referrer" onerror="
+                                if (!this.fallback) { this.src = '${url2}'; this.fallback = true; }
+                            " />`;
+                        })()
                         break;
                     case 1019:
                         result = `<div class="reply">
@@ -72,6 +99,15 @@ export default defineComponent({
     justify-content: flex-start;
     align-items: flex-start;
     margin: 15px 0;
+}
+.notify-container {
+    font-size: 14px;
+    width: fit-content;
+    margin: 5px auto;
+    color: rgb(165, 165, 165);
+    padding: 3px 5px;
+    border-radius: 5px;
+    background: rgb(248, 248, 248);
 }
 .recv {
     flex-direction: row;
@@ -111,7 +147,7 @@ export default defineComponent({
     text-align: left;
     font-size: 14px;
     color: rgb(175, 168, 197);
-    width: 100%;
+    width: fit-content;
 }
 
 .text-container {
@@ -136,7 +172,8 @@ export default defineComponent({
     word-break: break-all;
 }
 .text :deep(img) {
-    max-height: 25vw;
+    max-height: 25vh;
+    max-width: 60vw;
 }
 .text :deep(span) {
     margin: 0 0 0 0;

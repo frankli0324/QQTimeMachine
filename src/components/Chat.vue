@@ -6,12 +6,15 @@
         </div>
         <div class="board">
             <div v-if="conversation">
-                <div v-for="item in conversation" :key="item.msgId">
+                <div v-for="item, i in conversation" :key="item.msgId">
+                    <div v-if="renderTime(i)" class="time">
+                        {{ new Date(item.time*1000).toLocaleString() }}
+                    </div>
                     <Message
-                        :uid="item.uin"
+                        :uid="item.flag == 1 ? item.uin : self_uin"
                         :name="item.nickName"
                         :msg="item.content"
-                        :is_sending="item.uin == self_uin"
+                        :is_sending="item.flag != 1"
                     />
                 </div>
             </div>
@@ -24,7 +27,6 @@
 import { defineComponent } from 'vue'
 import Message from './Message.vue'
 
-
 export default defineComponent({
     components: { Message },
     setup() {
@@ -35,7 +37,14 @@ export default defineComponent({
         'self_uin': Number,
         'conversation': Array,
         'meta': Object,
-    }
+    },
+    methods: {
+        renderTime(idx) {
+            if (idx === 0) return false;
+            if (this.conversation[idx].time - this.conversation[idx - 1].time > 300)
+                return true;
+        }
+    },
 })
 </script>
 
@@ -61,6 +70,10 @@ export default defineComponent({
     margin-left: 33%;
     text-align: right;
     padding-right: 10px;
+}
+.time {
+    color: rgb(165, 165, 165);
+    font-size: 14px;
 }
 .board {
     width: 100%;
