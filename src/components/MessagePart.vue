@@ -2,32 +2,43 @@
     <span v-if="part['msg-type'] == 0">
         {{ part['text'].replace('\r\n', '<br />') }}
     </span>
-    <img v-if="part['msg-type'] == 1" loading="lazy"
-        :src="`qimg://${part['url']}#${part['file-name'].split('.').pop()}`" />
-    <div v-if="part['msg-type'] == 1019" class="reply">
+    <VLazyImage v-else-if="part['msg-type'] == 1" :src="convert_url(part)" />
+    <div v-else-if="part['msg-type'] == 1019" class="reply">
         <MessagePart :part="part" v-for="part, i in JSON.parse(part['sourceContent'])" :key="i" />
     </div>
-    <span v-if="part['msg-type'] == 1023" class="at">
+    <span v-else-if="part['msg-type'] == 1023" class="at">
         {{ part.text }}
     </span>
-    <span v-if="part['msg-type'] == 1020">[{{ part.text }}]</span>
+    <span v-else-if="part['msg-type'] == 1020">[{{ part.text }}]</span>
+    <span v-else>
+        <!-- part['msg-type'] -->
+    </span>
 </template>
 
 <script>
 import { defineComponent } from 'vue'
+import VLazyImage from "v-lazy-image"
 
 export default defineComponent({
-    setup() {
-
-    },
-    mounted() {
-        if (this.part['msg-type'] == 1019) {
-            console.log(this.part);
-        }
-    },
+    components: { VLazyImage }, 
+    setup() { },
+    mounted() { },
     props: {
         part: Object,
     },
+    methods: {
+        convert_url(part) {
+            if ((part['url'] || '').startsWith('/gchatpic_new')) {
+                let sender = part['url'].split('/')[2];
+                return `qimg://group/${sender}/${part['md5']}/${part['file-name']}/${part['file-id']}`;
+            } else if ((part['url'] || '').startsWith('/offpic_new')) {
+                let sender = part['url'].split('/')[2];
+                return `qimg://user/${sender}/${part['md5']}/${part['file-name']}`;
+            } else {
+                return '';
+            }
+        }
+    }
 })
 </script>
 

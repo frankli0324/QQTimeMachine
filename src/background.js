@@ -67,23 +67,34 @@ app.on('ready', async () => {
     }
   }
   protocol.registerFileProtocol('qimg', async (req, cb) => {
-    let url = req.url.substring(7);
-    let ext = url.split('#').pop();
-    let md5;
-    try {
-      md5 = url.match('\/gchatpic_new\/[0-9]*\/[0-9]*-[0-9]*-([A-Z0-9]*)\/0*')[1];
-    } catch (err) {
-      cb('');
-      return;
+    let pattern = /(?<source>group|user)\/(?<sender>[0-9]*)\/(?<md5>[a-zA-Z0-9]{32})\/(?<filename>[^/]*)\/(?<fileid>[0-9]*)?/gm;
+    let request = pattern.exec(req.url.substring(7));
+    if (request === null) return;
+    let { source, sender, md5, filename } = request.groups;
+    md5 = md5.toUpperCase();
+    const base = path.join(os.homedir(), 'Library/Containers/com.tencent.qq/Data');
+    const md5cache = path.join(base, 'Library/Caches/Images');
+    if (filename.startsWith('{')) {
+      filename = `${md5}.${filename.split('.').pop()}`;
     }
-    const base = path.join(os.homedir(), 'Library/Containers/com.tencent.qq/Data/Library/Caches/Images');
-    const location = path.join(base, `${md5}.${ext}`); // guessed
-    console.log(`loading ${md5}.${ext}`);
+    const location = path.join(md5cache, filename); // guessed
     if (!fs.existsSync(location)) {
-      let req = await https.get({
-        hostname: 'gchat.qpic.cn',
-        path: url,
-      }, async function (res) {
+      console.log(location);
+      let req = await https.get((function () {
+        switch (source) {
+          case 'group': return {
+            hostname: 'gchat.qpic.cn',
+            //                            ⬇️ this seems to be consistent for each gruop
+            path: `/gchatpic_new/${sender}/0-${request.groups['fileid']}-${md5}/0`,
+            timeout: 3000,
+          }
+          case 'user': return {
+            hostname: 'c2cpicdw.qpic.cn',
+            path: `/offpic_new/${sender}/${sender}-0-${md5}`,
+            timeout: 3000,
+          }
+        }
+      })(), async function (res) {
         if (res.statusCode === 200) {
           const file = fs.createWriteStream(location);
           res.pipe(file);
@@ -94,10 +105,10 @@ app.on('ready', async () => {
             file.close();
             cb(location);
           });
-        }
+        } else { cb({ statusCode: 404 }); }
       });
       req.on('error', (err) => {
-        console.log(err, url);
+        cb({ statusCode: 404 });
       });
     } else {
       cb(location);
