@@ -3,6 +3,10 @@
 import { app, protocol, BrowserWindow } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
+import https from 'https';
+import os from 'os';
+import path from 'path';
+import fs from 'fs';
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
 // Scheme must be registered before the app is ready
@@ -62,6 +66,43 @@ app.on('ready', async () => {
       console.error('Vue Devtools failed to install:', e.toString())
     }
   }
+  protocol.registerFileProtocol('qimg', async (req, cb) => {
+    let url = req.url.substring(7);
+    let ext = url.split('#').pop();
+    let md5;
+    try {
+      md5 = url.match('\/gchatpic_new\/[0-9]*\/[0-9]*-[0-9]*-([A-Z0-9]*)\/0*')[1];
+    } catch (err) {
+      cb('');
+      return;
+    }
+    const base = path.join(os.homedir(), 'Library/Containers/com.tencent.qq/Data/Library/Caches/Images');
+    const location = path.join(base, `${md5}.${ext}`); // guessed
+    console.log(`loading ${md5}.${ext}`);
+    if (!fs.existsSync(location)) {
+      let req = await https.get({
+        hostname: 'gchat.qpic.cn',
+        path: url,
+      }, async function (res) {
+        if (res.statusCode === 200) {
+          const file = fs.createWriteStream(location);
+          res.pipe(file);
+          res.on('error', (err) => {
+            fs.unlink(location);
+          });
+          file.on('finish', () => {
+            file.close();
+            cb(location);
+          });
+        }
+      });
+      req.on('error', (err) => {
+        console.log(err, url);
+      });
+    } else {
+      cb(location);
+    }
+  })
   createWindow()
 })
 
