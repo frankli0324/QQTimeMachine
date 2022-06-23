@@ -8,7 +8,9 @@
                 {{ this.name }}
             </div>
             <div class="text-container">
-                <div class="text" v-html="this.render_msg(msg)"></div>
+                <div class="text">
+                    <MessagePart :part="part" v-for="part, i in msg" :key="i" />
+                </div>
             </div>
         </div>
     </div>
@@ -18,28 +20,31 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue'
+import { defineComponent } from 'vue';
+import MessagePart from './MessagePart.vue';
 
 export default defineComponent({
+    components: { MessagePart },
     setup() {
 
     },
     data() {
         return {
-            style: '',
-        }
+            style: "",
+        };
     },
     mounted() {
-        if (typeof this.msg === 'string') {
-            if (this.msg.startsWith('<?xml')) {
-                this.style = 'xml';
-            } else {
-                this.style = 'notify';
+        if (typeof this.msg === "string") {
+            if (this.msg.startsWith("<?xml")) {
+                this.style = "xml";
             }
-        } else if (this.msg instanceof Array) {
-            this.style = 'msg';
+            else {
+                this.style = "notify";
+            }
         }
-        console.log(this.style);
+        else if (this.msg instanceof Array) {
+            this.style = "msg";
+        }
     },
     props: {
         uid: Number,
@@ -51,42 +56,7 @@ export default defineComponent({
         avatar_url(uid) {
             return `https://q2.qlogo.cn/headimg_dl?dst_uin=${uid || this.uid}&spec=100`;
         },
-        render_msg(msg) {
-            let result = '';
-            for (let c of msg) {
-                switch (c['msg-type']) {
-                    case 0:
-                        result += `<span>${c.text.replace('\r\n', '<br/>')}</span>`;
-                        break;
-                    case 1:
-                        result += (function() {
-                            let ext = c['file-name'].split('.').pop()
-                            let imbase = 'http://gchat.qpic.cn';
-                            let url1 = `http://localhost:8000/${c['md5']}.${ext}`;
-                            let url2 = `${imbase}${c.url}`;
-                            return `<img src="${url1}" referrerpolicy="no-referrer" onerror="
-                                if (!this.fallback) { this.src = '${url2}'; this.fallback = true; }
-                            " />`;
-                        })()
-                        break;
-                    case 1019:
-                        result = `<div class="reply">
-                            ${this.render_msg(JSON.parse(c.sourceContent))}
-                        </div>` + result;
-                        break;
-                    case 1020:
-                        result += `[${c.text}]`;
-                        break;
-                    case 1023:
-                        result += `<span style="color: darkblue; font-size: 17px;">${c.text}</span>`;
-                        break;
-                    default:
-                        console.log(c['msg-type']);
-                }
-            }
-            return result;
-        },
-    }
+    },
 })
 </script>
 
@@ -161,7 +131,6 @@ export default defineComponent({
 .send .text-container {
     justify-content: flex-end;
 }
-
 .text {
     line-height: 30px;
     padding: 5px;
@@ -170,28 +139,5 @@ export default defineComponent({
     text-align: left;
     background: rgb(243, 243, 243);
     word-break: break-all;
-}
-.text :deep(img) {
-    max-height: 25vh;
-    max-width: 60vw;
-}
-.text :deep(span) {
-    margin: 0 0 0 0;
-    font-size: 18px;
-}
-.text :deep(.reply) {
-    font-size: 13px;
-    border-radius: 5px;
-    background: rgb(230, 230, 230);
-    padding-left: 5px;
-    padding-right: 5px;
-}
-.text :deep(.reply:hover) {
-    cursor: pointer;
-    background: rgb(215, 215, 215);
-}
-.text :deep(.reply:active) {
-    cursor: pointer;
-    background: rgb(210, 210, 210);
 }
 </style>
