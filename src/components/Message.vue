@@ -1,20 +1,25 @@
 <template>
-    <div v-if="style === 'msg'" :class="['message-container', is_sending ? 'send' : 'recv']">
+    <div v-if="['msg', 'file'].includes(style)" :class="['message-container', is_sending ? 'send' : 'recv']">
         <div class="avatar-container">
             <img :src="this.avatar_url()" />
         </div>
         <div class="content-container">
-            <div class="name-container">
-                {{ this.name }}
-            </div>
-            <div class="text-container">
-                <div class="text">
-                    <MessagePart :part="part" v-for="part, i in msg" :key="i" />
+            <div class="wrapper">
+                <div class="name-container">
+                    {{ this.name }}
                 </div>
+            </div>
+            <div class="wrapper">
+                <div v-if="style === 'msg'" class="text-container">
+                    <div class="text">
+                        <MessagePart :part="part" v-for="part, i in msg" :key="i" />
+                    </div>
+                </div>
+                <MessageFile v-else :msg="msg" class="file-container" />
             </div>
         </div>
     </div>
-    <div v-if="style === 'notify'" class="notify-container">
+    <div v-else-if="style === 'notify'" class="notify-container">
         {{ msg }}
     </div>
 </template>
@@ -22,9 +27,10 @@
 <script>
 import { defineComponent } from 'vue';
 import MessagePart from './MessagePart.vue';
+import MessageFile from './MessageFile.vue';
 
 export default defineComponent({
-    components: { MessagePart },
+    components: { MessagePart, MessageFile },
     setup() {
 
     },
@@ -44,6 +50,8 @@ export default defineComponent({
         }
         else if (this.msg instanceof Array) {
             this.style = "msg";
+        } else if (this.msg instanceof Object && this.msg.job_id) {
+            this.style = "file";
         }
     },
     props: {
@@ -119,6 +127,9 @@ export default defineComponent({
     color: rgb(175, 168, 197);
     width: fit-content;
 }
+.send .name-container {
+    float: right;
+}
 
 .text-container {
     width: 100%;
@@ -131,6 +142,11 @@ export default defineComponent({
 .send .text-container {
     justify-content: flex-end;
 }
+
+.send .file-container {
+    float: right;
+}
+
 .text {
     line-height: 30px;
     padding: 5px;
