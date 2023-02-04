@@ -28,12 +28,14 @@ export default defineComponent({
     },
     methods: {
         convert_url(part) {
+            let scheme = (window && window.process && window.process.version && window.process.version.electron) ?
+                "qimg" : "/qimg?u=qimg";
             if ((part['url'] || '').startsWith('/gchatpic_new')) {
                 let sender = part['url'].split('/')[2];
-                return `qimg://group/${sender}/${part['md5']}/${part['file-name']}/${part['file-id']}`;
+                return `${scheme}://group/${sender}/${part['md5']}/${part['file-name']}/${part['file-id']}`;
             } else if ((part['url'] || '').startsWith('/offpic_new')) {
                 let sender = part['url'].split('/')[2];
-                return `qimg://user/${sender}/${part['md5']}/${part['file-name']}`;
+                return `${scheme}://user/${sender}/${part['md5']}/${part['file-name']}`;
             } else {
                 return '';
             }

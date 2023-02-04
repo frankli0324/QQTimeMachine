@@ -67,7 +67,7 @@ app.on('ready', async () => {
     }
   }
   protocol.registerFileProtocol('qimg', async (req, cb) => {
-    let pattern = /(?<source>group|user)\/(?<sender>[0-9]*)\/(?<md5>[a-zA-Z0-9]{32})\/(?<filename>[^/]*)\/(?<fileid>[0-9]*)?/gm;
+    let pattern = /(?<source>group|user)\/(?<sender>[0-9]*)\/(?<md5>[a-zA-Z0-9]{32})\/(?<filename>[^/]*)(\/(?<fileid>[0-9]*))?/gm;
     let request = pattern.exec(req.url.substring(7));
     if (request === null) return;
     let { source, sender, md5, filename } = request.groups;
@@ -79,7 +79,6 @@ app.on('ready', async () => {
     }
     const location = path.join(md5cache, filename); // guessed
     if (!fs.existsSync(location)) {
-      console.log(location);
       let req = await https.get((function () {
         switch (source) {
           case 'group': return {
