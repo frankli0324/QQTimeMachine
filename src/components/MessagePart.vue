@@ -28,7 +28,7 @@ export default defineComponent({
     },
     methods: {
         convert_url(part) {
-            let scheme = (window && window.process && window.process.version && window.process.version.electron) ?
+            let scheme = (window && window.process && window.process.versions && window.process.versions.electron) ?
                 "qimg" : "/qimg?u=qimg";
             if ((part['url'] || '').startsWith('/gchatpic_new')) {
                 let sender = part['url'].split('/')[2];
